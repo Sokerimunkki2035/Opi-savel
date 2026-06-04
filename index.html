@@ -2,54 +2,47 @@
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
-    <title>Bussipukki LauluStudio</title>
+    <title>Bussipukki LauluStudio Pro</title>
     <style>
-        body { font-family: sans-serif; background: #f0f4f8; text-align: center; padding: 20px; }
-        .stats { font-size: 2rem; margin: 10px; color: #2c3e50; font-weight: bold; }
-        #canvas { background: white; border: 4px solid #333; width: 95%; height: 300px; display: block; margin: 20px auto; border-radius: 10px; }
-        #palaute { font-size: 2.5rem; font-weight: bold; margin: 10px; }
-        button { padding: 20px 40px; font-size: 1.5rem; margin: 10px; cursor: pointer; border: none; border-radius: 15px; }
-        .start { background: #27ae60; color: white; }
-        .stop { background: #c0392b; color: white; }
+        body { font-family: sans-serif; background: #f0f4f8; text-align: center; padding: 10px; transition: background 0.5s; }
+        #canvas { background: white; border: 4px solid #333; width: 95%; height: 250px; margin: 10px auto; display: block; }
+        .stats { font-size: 1.3rem; margin: 10px; font-weight: bold; }
+        button { padding: 15px; margin: 5px; cursor: pointer; border-radius: 8px; border: none; background: #2980b9; color: white; }
+        .tauko { background: #e74c3c; }
     </style>
 </head>
 <body>
-    <h1>🎤 Bussipukki LauluStudio</h1>
-    <div class="stats">Pisteet: <span id="score">0</span></div>
-    
+    <h1>🎤 Bussipukki LauluStudio Pro</h1>
+    <div class="stats" id="info">Valitse harjoitus ja paina "Aloita kuuntelu"</div>
     <canvas id="canvas"></canvas>
-    <div id="palaute">Valmiina!</div>
+    <div id="kehitysgraafi">Kehityshistoria: Ei vielä tuloksia.</div>
     
-    <button class="start" onclick="toggleMalliAani(true)">Soita malliääni</button>
-    <button class="stop" onclick="toggleMalliAani(false)">Stop</button>
-    <button style="background:#2980b9; color:white;" onclick="startApp()">Aloita mittaus</button>
+    <div class="controls">
+        <button onclick="aloitaHarjoitus('Do-Re-Mi')">Do-Re-Mi</button>
+        <button onclick="aloitaHarjoitus('Sireeni')">Sireeni</button>
+        <button onclick="startApp()">Aloita kuuntelu</button>
+        <button class="tauko" onclick="pidaTauko()">Tauko (Pala kurkussa)</button>
+    </div>
 
     <script>
-        let audioCtx, analyser, osc, gainNode;
-        let score = 0;
-        const targetHz = 261.63;
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let points = [];
+        let audioCtx, analyser, stats = JSON.parse(localStorage.getItem('lauluStats')) || [];
+        let startTime = Date.now();
 
-        function toggleMalliAani(play) {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (play) {
-                if(osc) return;
-                osc = audioCtx.createOscillator();
-                gainNode = audioCtx.createGain();
-                osc.frequency.value = targetHz;
-                gainNode.gain.value = 0.1;
-                osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                osc.start();
-            } else {
-                if(osc) { osc.stop(); osc = null; }
-            }
+        function pidaTauko() {
+            document.body.style.backgroundColor = "#ff9999";
+            document.getElementById('info').innerText = "Ääni tarvitsee lepoa! Pysähdy heti.";
+        }
+
+        function aloitaHarjoitus(tyyppi) {
+            document.body.style.backgroundColor = "#f0f4f8";
+            document.getElementById('info').innerText = "Harjoitus: " + tyyppi + ". Laula nuottiviivaston mukaan.";
+            // Tässä voisi olla logiikka tehtävän automaattiseen vaihtoon
         }
 
         async function startApp() {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const source = audioCtx.createMediaStreamSource(stream);
             analyser = audioCtx.createAnalyser();
@@ -59,32 +52,32 @@
         }
 
         function draw() {
+            requestAnimationFrame(draw);
             let dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
             let max = 0, index = 0;
             for(let i=0; i<dataArray.length; i++) { if(dataArray[i] > max) { max = dataArray[i]; index = i; } }
             const hz = Math.round(index * audioCtx.sampleRate / analyser.fftSize);
-            
-            if (max > 30) {
-                points.push(hz);
-                if (points.length > canvas.width / 5) points.shift();
-                if(Math.abs(hz - targetHz) < 15) { score++; document.getElementById('palaute').innerText = "Loistavaa! 🎯"; }
-                else document.getElementById('palaute').innerText = hz < targetHz ? "Nosta ↑" : "Laske ↓";
-                document.getElementById('score').innerText = score;
+
+            // Piirretään nuottiviivasto
+            ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height);
+            ctx.strokeStyle = "#ccc";
+            for(let i=0; i<5; i++) {
+                ctx.beginPath(); ctx.moveTo(0, 80 + (i * 30)); ctx.lineTo(canvas.width, 80 + (i * 30)); ctx.stroke();
             }
 
-            ctx.fillStyle = "white"; ctx.fillRect(0,0,canvas.width, canvas.height);
-            // Malliviiva
-            ctx.strokeStyle = "#bdc3c7"; ctx.setLineDash([5, 5]); ctx.beginPath();
-            let targetY = canvas.height - (targetHz / 2);
-            ctx.moveTo(0, targetY); ctx.lineTo(canvas.width, targetY); ctx.stroke();
-            ctx.setLineDash([]);
-            // Oma viiva
-            ctx.strokeStyle = "#e67e22"; ctx.lineWidth = 5; ctx.beginPath();
-            for(let i=0; i<points.length; i++) ctx.lineTo(i * 5, canvas.height - (points[i] / 2));
-            ctx.stroke();
-            requestAnimationFrame(draw);
+            // Piirretään laulajan viiva
+            if(max > 30) {
+                ctx.strokeStyle = "#e67e22"; ctx.lineWidth = 5;
+                ctx.lineTo(200, 200 - (hz/3)); ctx.stroke();
+            }
+
+            // Treeniaika-tarkistus (15 min)
+            if (Date.now() - startTime > 15 * 60 * 1000) {
+                document.getElementById('info').innerText = "15 min täynnä – pidä tauko!";
+            }
         }
     </script>
 </body>
 </html>
+
