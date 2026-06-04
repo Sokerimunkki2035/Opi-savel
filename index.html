@@ -2,22 +2,35 @@
 <html lang="fi">
 <head>
     <meta charset="UTF-8">
-    <title>Laulun harjoitusapuri</title>
+    <title>Lauluharjoitus</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; }
+        button { padding: 20px 40px; font-size: 20px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 10px; }
+    </style>
 </head>
 <body>
-    <h1>Lauluharjoittelu</h1>
-    <h2 id="note">Laula jotain...</h2>
-    <p id="hz">-- Hz</p>
-    <button onclick="startPitchDetection()">Aloita lauluanalyysi</button>
+    <h1>Lauluharjoitus: Mii-Mii-Aaa</h1>
+    <p>Paina nappia kuullaksesi tavoitesävelen:</p>
+    
+    <button onclick="soitaSavel()">Soita sävel (C4)</button>
 
-    <script src="https://cdn.jsdelivr.net/gh/cwilso/pitchdetect/js/pitchdetect.js"></script>
     <script>
-        // Tämä on hyvin yksinkertaistettu versio. 
-        // Oikeasti tarvitset audiosignaalin prosessointia (FFT).
-        async function startPitchDetection() {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            // Tähän tulisi logiikka, joka vertaa ääntäsi taajuustaulukkoon
-            alert("Mikrofoni päällä! Nyt sovellus kuuntelee ääntäsi.");
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function soitaSavel() {
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.type = 'sine'; // Puhdas ääni
+            osc.frequency.setValueAtTime(261.63, audioCtx.currentTime); // C4 nuotti
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 2); // Soi 2 sekuntia
         }
     </script>
 </body>
