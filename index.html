@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <title>Laulun harjoitusapuri</title>
+</head>
+<body>
+    <h1>Lauluharjoittelu</h1>
+    <h2 id="note">Laula jotain...</h2>
+    <p id="hz">-- Hz</p>
+    <button onclick="startPitchDetection()">Aloita lauluanalyysi</button>
+
+    <script src="https://cdn.jsdelivr.net/gh/cwilso/pitchdetect/js/pitchdetect.js"></script>
+    <script>
+        // Tämä on hyvin yksinkertaistettu versio. 
+        // Oikeasti tarvitset audiosignaalin prosessointia (FFT).
+        async function startPitchDetection() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            // Tähän tulisi logiikka, joka vertaa ääntäsi taajuustaulukkoon
+            alert("Mikrofoni päällä! Nyt sovellus kuuntelee ääntäsi.");
+        }
+    </script>
+</body>
+</html>
