@@ -4,34 +4,58 @@
     <meta charset="UTF-8">
     <title>Lauluharjoitus</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; }
-        button { padding: 20px 40px; font-size: 20px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 10px; }
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        #mittari { font-size: 3rem; margin: 20px; padding: 20px; border: 2px solid #ccc; }
+        button { padding: 15px 30px; font-size: 18px; margin: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>Lauluharjoitus: Mii-Mii-Aaa</h1>
-    <p>Paina nappia kuullaksesi tavoitesävelen:</p>
+    <h1>Lauluharjoittelu</h1>
+    <button onclick="soitaSavel()">Soita mallisävel (C4)</button>
+    <button onclick="aloitaKuuntelu()">Aloita mikrofonin kuuntelu</button>
     
-    <button onclick="soitaSavel()">Soita sävel (C4)</button>
+    <div id="mittari">-- Hz</div>
+    <p>Laula mikrofoniin nähdäksesi taajuuden.</p>
 
     <script>
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+        // 1. Soittaa malliäänen
         function soitaSavel() {
             const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            osc.type = 'sine'; // Puhdas ääni
-            osc.frequency.setValueAtTime(261.63, audioCtx.currentTime); // C4 nuotti
-            
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
+            osc.frequency.setValueAtTime(261.63, audioCtx.currentTime);
+            osc.connect(audioCtx.destination);
             osc.start();
-            osc.stop(audioCtx.currentTime + 2); // Soi 2 sekuntia
+            osc.stop(audioCtx.currentTime + 1.5);
+        }
+
+        // 2. Kuuntelee mikrofonia (yksinkertainen visualisointi)
+        async function aloitaKuuntelu() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const analyser = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function paivita() {
+                analyser.getByteFrequencyData(dataArray);
+                // Etsitään voimakkain taajuus
+                let max = 0;
+                let index = 0;
+                for(let i=0; i<bufferLength; i++) {
+                    if(dataArray[i] > max) { max = dataArray[i]; index = i; }
+                }
+                const hz = Math.round(index * audioCtx.sampleRate / analyser.fftSize);
+                if (max > 50) { // vain jos laulu on tarpeeksi voimakasta
+                    document.getElementById('mittari').innerText = hz + " Hz";
+                }
+                requestAnimationFrame(paivita);
+            }
+            paivita();
         }
     </script>
 </body>
 </html>
+
